@@ -119,8 +119,8 @@ class RobertaForPromptFinetuning(BertPreTrainedModel):
         super().__init__(config)
         self.num_labels = config.num_labels
         self.roberta = RobertaModel(config)
-        self.classifier = RobertaClassificationHead(config)
-        self.lm_head = RobertaLMHead(config)
+        self.classifier = RobertaClassificationHead(config) # 这个是没有使用的
+        self.lm_head = RobertaLMHead(config) # 只用了lm_head
         self.init_weights()
 
         # These attributes should be assigned once the model is initialized
@@ -142,6 +142,7 @@ class RobertaForPromptFinetuning(BertPreTrainedModel):
         mask_pos=None,
         labels=None,
     ):
+        # labels: [bc, num_labels] , 二分类即0, 1
         batch_size = input_ids.size(0)
 
         if mask_pos is not None:
@@ -167,10 +168,11 @@ class RobertaForPromptFinetuning(BertPreTrainedModel):
             return prediction_mask_scores
 
         # Return logits for each label
+        # print('self.label_word_list = ', self.label_word_list) # 在外面赋值, 是一个tensor, 即label_word_list对应的id_list
         logits = []
         for label_id in range(len(self.label_word_list)):
             logits.append(prediction_mask_scores[:, self.label_word_list[label_id]].unsqueeze(-1))
-        logits = torch.cat(logits, -1)
+        logits = torch.cat(logits, -1) # [bc, num_labels]
 
         # Regression task
         if self.config.num_labels == 1:
